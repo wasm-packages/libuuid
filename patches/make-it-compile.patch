@@ -1,0 +1,83 @@
+diff --git a/include/c.h b/include/c.h
+index d87521be0..917ac692b 100644
+--- a/include/c.h
++++ b/include/c.h
+@@ -17,7 +17,10 @@
+ #include <string.h>
+ #include <errno.h>
+ #include <sys/types.h>
++
++#ifndef __wasm__
+ #include <grp.h>
++#endif
+ 
+ #include <assert.h>
+ 
+@@ -390,6 +393,7 @@ static inline size_t get_hostname_max(void)
+ }
+ 
+ 
++#ifndef __wasm__
+ static inline int drop_permissions(void)
+ {
+ 	errno = 0;
+@@ -406,6 +410,7 @@ static inline int drop_permissions(void)
+ fail:
+ 	return errno ? -errno : -1;
+ }
++#endif
+ 
+ /*
+  * The usleep function was marked obsolete in POSIX.1-2001 and was removed
+diff --git a/libuuid/src/gen_uuid.c b/libuuid/src/gen_uuid.c
+index fca7e96e2..6b6270d48 100644
+--- a/libuuid/src/gen_uuid.c
++++ b/libuuid/src/gen_uuid.c
+@@ -221,6 +221,7 @@ enum { STATE_FD_ERROR = -1, STATE_FD_INIT = -2 };
+ 
+ static int state_fd_init(const char *clock_file, FILE **fp)
+ {
++#ifndef __wasm__
+ 	mode_t save_umask;
+ 	int state_fd;
+ 	FILE *state_f;
+@@ -237,6 +238,10 @@ static int state_fd_init(const char *clock_file, FILE **fp)
+ 			*fp = state_f;
+ 	}
+ 	return state_fd;
++#else
++    printf("state_fd_init: not implemented in Wasi yet\n");
++    abort();
++#endif
+ }
+ 
+ /* Assume that the gettimeofday() has microsecond granularity */
+@@ -267,6 +272,7 @@ static int get_clock(uint32_t *clock_high, uint32_t *clock_low,
+ 
+ 	if (state_fd >= 0) {
+ 		rewind(state_f);
++#ifndef __wasm__
+ 		while (flock(state_fd, LOCK_EX) < 0) {
+ 			if ((errno == EAGAIN) || (errno == EINTR))
+ 				continue;
+@@ -276,6 +282,10 @@ static int get_clock(uint32_t *clock_high, uint32_t *clock_low,
+ 			ret = -1;
+ 			break;
+ 		}
++#else
++    printf("get_clock: flock not implemented in Wasi yet\n");
++    abort();
++#endif
+ 	} else
+ 		ret = -1;
+ 
+@@ -346,7 +356,9 @@ try_again:
+ 			      clock_seq, (long)last.tv_sec, (long)last.tv_usec, adjustment);
+ 		fflush(state_f);
+ 		rewind(state_f);
++#ifndef __wasm__
+ 		flock(state_fd, LOCK_UN);
++#endif
+ 	}
+ 
+ 	*clock_high = clock_reg >> 32;
